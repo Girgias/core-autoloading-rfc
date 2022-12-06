@@ -116,8 +116,13 @@ Next minor version, i.e. PHP 8.3.
 
 ===== Future scope =====
 
-Deprecating the SPL functions which are now aliases.
-Constant autoloading?
+====== Deprecating the SPL autoloader functions ======
+
+Although at some point the current SPL autoloader functions could be deprecated and then removed in a later version of PHP, there is little cost in leaving those functions as aliases (and an internally redirected call) to the updated functions. Because of that, this RFC does not propose deprecating them in PHP 8.3, and instead leaves that to a future RFC.
+
+====== Constant and stream autoloading ======
+
+It would be possible to add autoloading for constants and streams, however to limit the scope of this RFC it only adds support for functions.
 
 ===== Proposed Voting Choices =====
 
