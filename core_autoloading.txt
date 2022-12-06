@@ -1,0 +1,142 @@
+====== PHP RFC: New core autoloading mechanism with support for function autoloading ======
+
+  * Version: 0.1
+  * Date: 2022-12-06
+  * Author: George Peter Banyard, <girgias@php.net>
+  * Status: Draft
+  * Target Version: PHP 8.3
+  * Implementation: [[https://github.com/php/php-src/pull/8294]]
+  * First Published at: [[http://wiki.php.net/rfc/core-autoloading]]
+
+===== Introduction =====
+
+PHP has had support for class autoloading since PHP 5 and is an extremely useful feature that is relied on to only load classes that are being used within the current request. However, such a feature for function does currently not exist.
+
+The need for such a feature seem very clear as users will create "helper" classes with static methods that are now possible to autoload via the class autoloading mechanism.
+
+This RFC proposes the introduction of such an autoloading feature for functions and a new one for classes which address some minor design issues with the current SPL design. 
+
+==== Overview of the SPL class autoloading feature ====
+
+The SPL class autoloading feature is split in two.
+Firstly the core feature that comprises registering and unregistering autoloading functions, listing all currently registered autoloaders, and a function to call the autoloaded manually.
+Secondly a default implementation of an autoloader.
+
+=== Core feature ===
+
+The core feature is composed of the following 4 functions:
+
+  * <php>spl_autoload_register(?callable $callback = null, bool $throw = true, bool $prepend = false): bool</php>
+  * <php>spl_autoload_unregister(callable $callback): bool</php>
+  * <php>spl_autoload_call(string $class): void</php>
+  * <php>spl_autoload_functions(): array</php>
+
+For <php>spl_autoload_register()</php> when the <php>$callback</php> argument is ''null'' then the default SPL implementation <php>spl_autoload()</php> will be used instead. The second argument <php>$throw</php> is ignored as of PHP 8.0.0 because a TypeError is always thrown when trying to provide a value which is not a callable, or a ValueError is thrown when trying to register the <php>spl_autoload_call()<php> function. The final parameter allow to prepend the autoloader to the list of autoloaders.
+It will register the callable, except if it was already registered previously.
+Moreover, as of PHP 8.0.0, this function always returns ''true''.
+
+For <php>spl_autoload_unregister()</php> it will return true and remove the callable from the list of autoloaders if the callable provided was previously registered, and false otherwise. However, it also posses and undocumented "feature" which is triggered when the <php>spl_autoload_call()<php> function is passed (which cannot be set as an autoloader), then it will flush the list of autoloaders resetting it to an empty array and always return ''true''.
+
+The other two functions have very straight forward behaviour, as in <php>spl_autoload_call()</php> will simply perform an autoloading attempt of the class name passed to the function, and <php>spl_autoload_functions()</php> will give back and array of callables which are currently registered as autoloading functions.
+
+Note: while working on this proposal a long standing bug was found with trampolines (call to methods that do not exist on the target class but which are proxied by the ''__call()''/''__callStatic()'' magic methods) which could be registered multiple times and could not be unregistered as there was a bug in the callable comparison function.
+
+=== Default autoloading implementation ===
+
+The default SPL autoloader is comprised of two functions:
+
+  * <php>spl_autoload(string $class, ?string $file_extensions = null): void</php>
+  * <php>spl_autoload_extensions(?string $file_extensions = null): string</php>
+
+TODO DESCRIBE DEFAULT AUTOLOADER BEHAVIOUR
+The <php>spl_autoload()</php> function will perform a class autoload in the following way:
+
+  * It will lowercase the class name
+  * Loop over the extensions which are stored in as single CSV row, either by using the value passed as the second argument, using the value set by a call to <php>spl_autoload_extensions()</php>, or by using the default value of ''".inc,.php"''
+  * At each iteration:
+	  * set the file to load as ''$lc_class_name . "." . "$extension";''
+	  * Replace ''\'' to the default file system directory seperator if it is not ''\''
+	  * Attempt to open the file
+	  	* If it was opened, use the ''require'' construct on it
+	  	* Run the content of the file
+	  * If the class was loaded exit the loop 
+
+
+The <php>spl_autoload_extensions()</php> functions allows to set extra file extensions that the default autoloader may tried while loading the file.
+By default the value it has is ''".inc,.php"''.
+
+===== Proposal =====
+
+The proposal consists of adding a better designed class autoloading mechanism and a new function autoloading mechanism. The proposal does //not// include a default implementation for either the class or the function autoloading mechanism.
+
+==== New Class autoloading mechanism ====
+
+This mechanism is mostly identical to the existing SPL design with some minor design issues addressed. It introduces the following 4 functions:
+
+  * <php>autoload_register_class(callable $callback, bool $prepend = false): void</php>
+  * <php>autoload_unregister_class(callable $callback): bool</php> whom <php>spl_autoload_unregister()</php> is an alias
+  * <php>autoload_call_class(string $class): void</php> whom <php>spl_autoload_call()</php> is an alias
+  * <php>autoload_list_class(): array</php> whom <php>spl_autoload_functions()</php> is an alias
+
+The <php>spl_autoload_register()</php> does not become an alias for <php>autoload_register_class()</php> to preserve BC by continuing to return ''true'', allowing it to register the default SPL autoloader, and accepting the ignored second parameter, but they are both forwarded to an identical internal implementation.
+
+Secondly, the behaviour to pass <php>autoload_call_class()</php>/<php>spl_autoload_call()</php> to <php>autoload_unregister_class()</php> is being deprecated. The proper way to unregister all autoloaders is to traverse the list returned by <php>autoload_list_class()</php> and call <php>autoload_unregister_class()</php> on each entry.
+
+
+==== Function autoloading mechanism ====
+
+The function autoloading mechanism encounters and issue that is not present with classes in that unqualified functions in a namespace will first attempt to call such a function name which is defined in the current namespace, if no such function can be found it will attempt to call a function with that name from the global namespace, this is called the "global fallback".
+
+In such cases the autoloading mechanism might be called unnecessarily once if the intended function to be called exists in the global namespace.
+
+The proposed function autoloading mechanism is to only trigger autoloading for fully qualified functions (be that explicitly or via a use statement import alias) in a named namespace. In the global namespace the autoloading mechanism is always triggered.
+
+The following 4 functions are introduced:
+
+  * <php>autoload_register_function(callable $callback, bool $prepend = false): void</php>
+  * <php>autoload_unregister_function(callable $callback): bool</php>
+  * <php>autoload_call_function(string $function): void</php> TODO Actually have this name in the implementation
+  * <php>autoload_list_function(): array</php>
+
+And the <php>function_exists()</php> function is modified by adding a ''$autoload'' parameter which defaults to ''true'' same as the <php>class_exists()</php> function.
+
+Note: changing the behaviour to trigger or not the autoloader for unqualified functions is a simple boolean flip change.
+
+==== Implementation details ====
+
+The implementation is based around the new internal FCC API added in PHP 8.3.
+
+===== Backward Incompatible Changes =====
+
+Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> is deprecated.
+
+===== Proposed PHP Version =====
+
+Next minor version, i.e. PHP 8.3.
+
+===== Future scope =====
+
+Deprecating the SPL functions which are now aliases.
+Constant autoloading?
+
+===== Proposed Voting Choices =====
+
+As per the voting RFC a yes/no vote with a 2/3 majority is needed for this proposal to be accepted.
+
+Voting started on 2022-XX-XX and will end on 2022-XX-XX.
+<doodle title="Accept New core autoloading mechanism with support for function autoloading RFC?" auth="girgias" voteType="single" closed="true">
+   * Yes
+   * No
+</doodle>
+
+===== Implementation =====
+
+GitHub pull request: https://github.com/php/php-src/pull/XXXX
+
+After the project is implemented, this section should contain
+
+  * the version(s) it was merged into
+  * a link to the git commit(s)
+  * a link to the PHP manual entry for the feature
+
+===== References =====
