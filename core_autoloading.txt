@@ -85,7 +85,7 @@ Secondly, the behaviour to pass <php>autoload_call_class()</php>/<php>spl_autolo
 
 ==== Function autoloading mechanism ====
 
-The function autoloading mechanism encounters and issue that is not present with classes in that unqualified functions in a namespace will first attempt to call such a function name which is defined in the current namespace, if no such function can be found it will attempt to call a function with that name from the global namespace, this is called the "global fallback".
+The function autoloading mechanism encounters an issue that is not present with classes in that unqualified functions in a namespace will first attempt to call such a function name which is defined in the current namespace, if no such function can be found it will attempt to call a function with that name from the global namespace, this is called the "global fallback".
 
 In such cases the autoloading mechanism might be called unnecessarily once if the intended function to be called exists in the global namespace.
 
