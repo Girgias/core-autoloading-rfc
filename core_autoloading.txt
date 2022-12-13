@@ -106,6 +106,77 @@ Note: changing the behaviour to trigger or not the autoloader for unqualified fu
 
 The implementation is based around the new internal FCC API added in PHP 8.3.
 
+===== Namespace fallback to global functions =====
+
+When namespaces were introduced in PHP 5.3.0, to avoid requiring leading slashes before all basic functions, function calls in a namespace would 'fallback' to the global scope.
+
+e.g. for the code:
+
+```
+namespace bar {
+    echo "length of hmm is " . strlen("hmm") . "\n";
+}
+```
+
+If a function named 'strlen' exists in the namespace 'bar' PHP would use that, otherwise PHP would fallback to the strlen function in the global namespace. Note, the `use function strlen;` syntax was introduced in 5.6.
+
+This RFC preserves that fallback behaviour.
+
+When code tries to call a function that doesn't currently exist in the current namespace, the function autoloader mechanism will call the registered function autoloaders once with the namespaced function name.
+
+If no function is loaded during that call, the function call will fallback to the global namespace.
+
+After that function autoload attempt, the function will be 'pinned' to the function that was resolved on the first autoload attempt, and no more function autoload calls will be generated.
+
+This is possibly easier to understand through code:
+
+```
+namespace {
+    function loader($name) {
+        echo "function loader called with $name\n";
+    }
+
+    autoload_register_function('loader');
+
+    function foo() {
+        echo "I am foo in global namespace.\n";
+    }
+}
+
+namespace bar {
+    foo();
+
+    for ($i = 0; $i < 3; $i += 1) {
+        foo();
+    }
+}
+namespace bar {
+    foo();
+}
+
+namespace Quux {
+    foo();
+}
+
+// Output is
+// function loader called with bar\foo
+// I am foo in global namespace.
+// I am foo in global namespace.
+// I am foo in global namespace.
+// I am foo in global namespace.
+// I am foo in global namespace.
+// function loader called with Quux\foo
+// I am foo in global namespace.
+
+```
+
+The position of this RFC is that this behaviour is correct both from a performance point-of-view, and a being able to reason about code point-of-view.
+
+Having the function autoloader called on each use of an unqualified function call in a namespace would be a performance hit that would be unacceptable to most PHP users.
+
+Having it possible for what appears to be the same function call, to actually be dispatched to different functions, would be far too surprising a behaviour to the RFC authors.
+
+
 ===== Backward Incompatible Changes =====
 
 Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> is deprecated.
