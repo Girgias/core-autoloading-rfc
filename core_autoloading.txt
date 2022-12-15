@@ -12,9 +12,13 @@
 
 PHP has had support for class autoloading since PHP 5 and is an extremely useful feature that is relied on to only load classes that are being used within the current request. However, such a feature for function does currently not exist.
 
-The need for such a feature seem very clear as users will create "helper" classes with static methods that are now possible to autoload via the class autoloading mechanism.
+Where programmers who are experienced in other languages would use 'just' a function, most PHP programmers would avoid using a function. For example many PHP programmers write functions as static methods on classes, so that they can take advantage of autoloading, and then use a facade of a marketing term to avoid referring to them as functions.
 
-This RFC proposes the introduction of such an autoloading feature for functions and a new one for classes which address some minor design issues with the current SPL design. 
+This avoidance of functions affects how people think about programming.
+
+Similar to how being able to mark [types as nullable](https://www.php.net/manual/en/migration71.new-features.php#migration71.new-features.nullable-types) has influenced people to think of nullability as a 'special flag' (rather than a union of that type with null), a programming language where functions are so difficult to use that people don't talk about them clearly, seems to be 'sub-optimal' aspect of that programming language.
+
+This RFC proposes the introduction of an autoloading feature for functions and a new one for classes which address some minor design issues with the current SPL design. 
 
 ==== Overview of the SPL class autoloading feature ====
 
