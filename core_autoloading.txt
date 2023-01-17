@@ -48,7 +48,6 @@ The default SPL autoloader is comprised of two functions:
   * <php>spl_autoload(string $class, ?string $file_extensions = null): void</php>
   * <php>spl_autoload_extensions(?string $file_extensions = null): string</php>
 
-TODO DESCRIBE DEFAULT AUTOLOADER BEHAVIOUR
 The <php>spl_autoload()</php> function will perform a class autoload in the following way:
 
   * It will lowercase the class name
@@ -89,7 +88,7 @@ The function autoloading mechanism encounters an issue that is not present with 
 
 In such cases the autoloading mechanism might be called unnecessarily once if the intended function to be called exists in the global namespace.
 
-The proposed function autoloading mechanism is to only trigger autoloading for fully qualified functions (be that explicitly or via a use statement import alias) in a named namespace. In the global namespace the autoloading mechanism is always triggered.
+The proposed function autoloading mechanism is triggered for fully qualified functions (be that explicitly or via a use statement import alias) in a named namespace, or any function in the global namespace (as it is implicitly fully qualified). The autoloading behaviour for unqualified functions in a namespace is described below.
 
 The following 4 functions are introduced:
 
@@ -112,13 +111,13 @@ When namespaces were introduced in PHP 5.3.0, to avoid requiring leading slashes
 
 e.g. for the code:
 
-```
+<PHP>
 namespace bar {
     echo "length of hmm is " . strlen("hmm") . "\n";
 }
-```
+</PHP>
 
-If a function named 'strlen' exists in the namespace 'bar' PHP would use that, otherwise PHP would fallback to the strlen function in the global namespace. Note, the `use function strlen;` syntax was introduced in 5.6.
+If a function named ''strlen'' exists in the namespace ''bar'' PHP would use that, otherwise PHP would fallback to the <php>strlen()</php> function in the global namespace. Note, the ''use function strlen;'' syntax was introduced in PHP 5.6.
 
 This RFC preserves that fallback behaviour.
 
@@ -130,7 +129,7 @@ After that function autoload attempt, the function will be 'pinned' to the funct
 
 This is possibly easier to understand through code:
 
-```
+<PHP>
 namespace {
     function loader($name) {
         echo "function loader called with $name\n";
@@ -167,8 +166,7 @@ namespace Quux {
 // I am foo in global namespace.
 // function loader called with Quux\foo
 // I am foo in global namespace.
-
-```
+</PHP>
 
 The position of this RFC is that this behaviour is correct both from a performance point-of-view, and a being able to reason about code point-of-view.
 
@@ -199,7 +197,7 @@ It would be possible to add autoloading for constants and streams, however to li
 
 As per the voting RFC a yes/no vote with a 2/3 majority is needed for this proposal to be accepted.
 
-Voting started on 2022-XX-XX and will end on 2022-XX-XX.
+Voting started on 2023-XX-XX and will end on 2023-XX-XX.
 <doodle title="Accept New core autoloading mechanism with support for function autoloading RFC?" auth="girgias" voteType="single" closed="true">
    * Yes
    * No
@@ -207,7 +205,7 @@ Voting started on 2022-XX-XX and will end on 2022-XX-XX.
 
 ===== Implementation =====
 
-GitHub pull request: https://github.com/php/php-src/pull/XXXX
+GitHub pull request: https://github.com/php/php-src/pull/8294
 
 After the project is implemented, this section should contain
 
