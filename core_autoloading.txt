@@ -31,7 +31,7 @@ The current autoloading feature is composed of the following 4 functions:
   * <php>spl_autoload_call(string $class): void</php>
   * <php>spl_autoload_functions(): array</php>
 
-For <php>spl_autoload_register()</php> when the <php>$callback</php> argument is ''null'' then the default SPL implementation <php>spl_autoload()</php> will be used instead. The second argument <php>$throw</php> is ignored as of PHP 8.0.0 because a TypeError is always thrown when trying to provide a value which is not a callable, or a ValueError is thrown when trying to register the <php>spl_autoload_call()<php> function. The final parameter allows to prepend the autoloader to the list of autoloaders.
+For <php>spl_autoload_register()</php> when the <php>$callback</php> argument is ''null'' then the default SPL implementation <php>spl_autoload()</php> will be used instead. The second argument <php>$throw</php> is ignored as of PHP 8.0.0 because a TypeError is always thrown when trying to provide a value which is not a callable, or a ValueError is thrown when trying to register the <php>spl_autoload_call()<php> function. The final parameter allows you to prepend the autoloader to the list of autoloaders, rather than have it appended.
 It will register the callable, except if it was already registered previously.
 Moreover, as of PHP 8.0.0, this function always returns ''true''.
 
