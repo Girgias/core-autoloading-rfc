@@ -10,11 +10,11 @@
 
 ===== Introduction =====
 
-PHP has had support for class autoloading since PHP 5 and is an extremely useful feature that is relied on to only load classes that are being used within the current request. However, such a feature for function does currently not exist.
+PHP has had support for class autoloading since PHP 5 and is an extremely useful feature that is relied on to only load classes that are being used within the current request. However, the current autoloading does not support autoloading functions.
 
-The need for such a feature seem very clear as users will create "helper" classes with static methods that are now possible to autoload via the class autoloading mechanism.
+The need for such a feature seem very clear as users will create "helper" classes with static methods to take advantage of autoloading via the class autoloading mechanism.
 
-This RFC proposes the introduction of such an autoloading feature for functions and a new one for classes which address some minor design issues with the current SPL design. 
+This RFC proposes the introduction of autoloading for functions and an updated mechanism for classes which address some minor design issues with the current SPL design.
 
 ==== Overview of the SPL class autoloading feature ====
 
@@ -22,20 +22,20 @@ The SPL class autoloading feature is split in two.
 Firstly the core feature that comprises registering and unregistering autoloading functions, listing all currently registered autoloaders, and a function to call the autoloaded manually.
 Secondly a default implementation of an autoloader.
 
-=== Core feature ===
+=== Overview of current autoloading ===
 
-The core feature is composed of the following 4 functions:
+The current autoloading feature is composed of the following 4 functions:
 
   * <php>spl_autoload_register(?callable $callback = null, bool $throw = true, bool $prepend = false): bool</php>
   * <php>spl_autoload_unregister(callable $callback): bool</php>
   * <php>spl_autoload_call(string $class): void</php>
   * <php>spl_autoload_functions(): array</php>
 
-For <php>spl_autoload_register()</php> when the <php>$callback</php> argument is ''null'' then the default SPL implementation <php>spl_autoload()</php> will be used instead. The second argument <php>$throw</php> is ignored as of PHP 8.0.0 because a TypeError is always thrown when trying to provide a value which is not a callable, or a ValueError is thrown when trying to register the <php>spl_autoload_call()<php> function. The final parameter allow to prepend the autoloader to the list of autoloaders.
+For <php>spl_autoload_register()</php> when the <php>$callback</php> argument is ''null'' then the default SPL implementation <php>spl_autoload()</php> will be used instead. The second argument <php>$throw</php> is ignored as of PHP 8.0.0 because a TypeError is always thrown when trying to provide a value which is not a callable, or a ValueError is thrown when trying to register the <php>spl_autoload_call()<php> function. The final parameter allows to prepend the autoloader to the list of autoloaders.
 It will register the callable, except if it was already registered previously.
 Moreover, as of PHP 8.0.0, this function always returns ''true''.
 
-For <php>spl_autoload_unregister()</php> it will return true and remove the callable from the list of autoloaders if the callable provided was previously registered, and false otherwise. However, it also posses and undocumented "feature" which is triggered when the <php>spl_autoload_call()<php> function is passed (which cannot be set as an autoloader), then it will flush the list of autoloaders resetting it to an empty array and always return ''true''.
+For <php>spl_autoload_unregister()</php> it returns true and removes the callable from the list of autoloaders if the callable provided was previously registered, and false otherwise. However, it also possesses an undocumented "feature" which is triggered when the <php>spl_autoload_call()<php> function is passed (which cannot be set as an autoloader), then it will flush the list of autoloaders resetting it to an empty array and always returns ''true''.
 
 The other two functions have very straight forward behaviour, as in <php>spl_autoload_call()</php> will simply perform an autoloading attempt of the class name passed to the function, and <php>spl_autoload_functions()</php> will give back and array of callables which are currently registered as autoloading functions.
 
@@ -48,10 +48,10 @@ The default SPL autoloader is comprised of two functions:
   * <php>spl_autoload(string $class, ?string $file_extensions = null): void</php>
   * <php>spl_autoload_extensions(?string $file_extensions = null): string</php>
 
-The <php>spl_autoload()</php> function will perform a class autoload in the following way:
+The <php>spl_autoload()</php> function performs a class autoload in the following way:
 
-  * It will lowercase the class name
-  * Loop over the extensions which are stored in as single CSV row, either by using the value passed as the second argument, using the value set by a call to <php>spl_autoload_extensions()</php>, or by using the default value of ''".inc,.php"''
+  * It lowercases the class name
+  * Loops over the extensions which are stored in as single CSV row, either by using the value passed as the second argument, using the value set by a call to <php>spl_autoload_extensions()</php>, or by using the default value of ''".inc,.php"''
   * At each iteration:
 	  * set the file to load as ''$lc_class_name . "." . "$extension";''
 	  * Replace ''\'' to the default file system directory seperator if it is not ''\''
@@ -60,7 +60,6 @@ The <php>spl_autoload()</php> function will perform a class autoload in the foll
 	  	* Run the content of the file
 	  * If the class was loaded exit the loop 
 
-
 The <php>spl_autoload_extensions()</php> functions allows to set extra file extensions that the default autoloader may tried while loading the file.
 By default the value it has is ''".inc,.php"''.
 
@@ -68,7 +67,7 @@ By default the value it has is ''".inc,.php"''.
 
 The proposal consists of adding a better designed class autoloading mechanism and a new function autoloading mechanism. The proposal does //not// include a default implementation for either the class or the function autoloading mechanism.
 
-==== New Class autoloading mechanism ====
+==== New autoloading API ====
 
 This mechanism is mostly identical to the existing SPL design with some minor design issues addressed. It introduces the following 4 functions:
 
@@ -79,33 +78,15 @@ This mechanism is mostly identical to the existing SPL design with some minor de
 
 The <php>spl_autoload_register()</php> does not become an alias for <php>autoload_register_class()</php> to preserve BC by continuing to return ''true'', allowing it to register the default SPL autoloader, and accepting the ignored second parameter, but they are both forwarded to an identical internal implementation.
 
-Secondly, the behaviour to pass <php>autoload_call_class()</php>/<php>spl_autoload_call()</php> to <php>autoload_unregister_class()</php> is being deprecated. The proper way to unregister all autoloaders is to traverse the list returned by <php>autoload_list_class()</php> and call <php>autoload_unregister_class()</php> on each entry.
+Secondly, the behaviour to pass <php>autoload_call_class()</php>/<php>spl_autoload_call()</php> to <php>autoload_unregister_class()</php> as a magic value to empty the autoloader list will be deprecated.
 
+It will still be possible to unregister all autoloaders by traversing the list returned by <php>autoload_list_class()</php> and call <php>autoload_unregister_class()</php> on each entry.
+
+==== Modified function ====
+
+The <php>function_exists()</php> function will be modified by adding a ''$autoload'' parameter which defaults to ''true'' same as the <php>class_exists()</php> function.
 
 ==== Function autoloading mechanism ====
-
-The function autoloading mechanism encounters an issue that is not present with classes in that unqualified functions in a namespace will first attempt to call such a function name which is defined in the current namespace, if no such function can be found it will attempt to call a function with that name from the global namespace, this is called the "global fallback".
-
-In such cases the autoloading mechanism might be called unnecessarily once if the intended function to be called exists in the global namespace.
-
-The proposed function autoloading mechanism is triggered for fully qualified functions (be that explicitly or via a use statement import alias) in a named namespace, or any function in the global namespace (as it is implicitly fully qualified). The autoloading behaviour for unqualified functions in a namespace is described below.
-
-The following 4 functions are introduced:
-
-  * <php>autoload_register_function(callable $callback, bool $prepend = false): void</php>
-  * <php>autoload_unregister_function(callable $callback): bool</php>
-  * <php>autoload_call_function(string $function): void</php> TODO Actually have this name in the implementation
-  * <php>autoload_list_function(): array</php>
-
-And the <php>function_exists()</php> function is modified by adding a ''$autoload'' parameter which defaults to ''true'' same as the <php>class_exists()</php> function.
-
-Note: changing the behaviour to trigger or not the autoloader for unqualified functions is a simple boolean flip change.
-
-==== Implementation details ====
-
-The implementation is based around the new internal FCC API added in PHP 8.3.
-
-===== Namespace fallback to global functions =====
 
 When namespaces were introduced in PHP 5.3.0, to avoid requiring leading slashes before all basic functions, function calls in a namespace would 'fallback' to the global scope.
 
@@ -121,59 +102,83 @@ If a function named ''strlen'' exists in the namespace ''bar'' PHP would use tha
 
 This RFC preserves that fallback behaviour.
 
-When code tries to call a function that doesn't currently exist in the current namespace, the function autoloader mechanism will call the registered function autoloaders once with the namespaced function name.
+When code tries to call a function that doesn't currently exist in the current namespace, the function autoloader mechanism will call the registered function autoloaders once with the fully namespaced function name.
 
-If no function is loaded during that call, the function call will fallback to the global namespace.
+If an appropriately named function is not loaded during that call, the PHP engine will 'fallback' that function to the global namespace. If a function already exists with the global namespace name, that will be used, otherwise the function autoloader mechanism will call the registered function autoloaders once with the global function name.
 
-After that function autoload attempt, the function will be 'pinned' to the function that was resolved on the first autoload attempt, and no more function autoload calls will be generated.
+After a function autoload attempt succeeds, the function will be 'pinned' to the function that was resolved on the first successful autoload attempt, and no more function autoload calls will be generated.
 
 This is possibly easier to understand through code:
 
 <PHP>
 namespace {
     function loader($name) {
-        echo "function loader called with $name\n";
+        echo "function loader called with '$name'\n";
+
+        if (strcasecmp($name, 'foo') === 0 && function_exists('foo') === false) {
+            // use eval to avoid foo already being defined
+            eval('function foo() {
+                echo "I am foo in global namespace.\n";
+            }');
+        }
+
+        if (strcasecmp($name, 'Quux\foo') === 0 && function_exists('Quux\foo') === false) {
+            // use eval to avoid foo already being defined
+            eval('
+            namespace Quux {
+              function foo() {
+               echo "I am foo in Quux namespace.\n";
+              }
+            }');
+        }
     }
 
     autoload_register_function('loader');
 
-    function foo() {
-        echo "I am foo in global namespace.\n";
-    }
+    foo(); // Autoload called in global namespace
 }
 
 namespace bar {
-    foo();
+    foo(); // Autoload called in bar namespace
 
     for ($i = 0; $i < 3; $i += 1) {
-        foo();
+        foo(); // Autoload not called, as function already pinned for namespace
     }
 }
 namespace bar {
-    foo();
+    foo(); // Autoload not called, as function already pinned for namespace
 }
 
 namespace Quux {
-    foo();
+    foo(); // Autoload called in Quux namespace
+    foo(); // Autoload not called, as function already pinned for namespace
+    non_existent_function(); // Autoload called twice, once with namespace, once without
 }
 
+
 // Output is
-// function loader called with bar\foo
-// I am foo in global namespace.
-// I am foo in global namespace.
-// I am foo in global namespace.
-// I am foo in global namespace.
-// I am foo in global namespace.
-// function loader called with Quux\foo
-// I am foo in global namespace.
+function loader called with 'foo'
+I am foo in global namespace.
+function loader called with 'bar\foo'
+I am foo in global namespace.
+I am foo in global namespace.
+I am foo in global namespace.
+I am foo in global namespace.
+I am foo in global namespace.
+function loader called with 'Quux\foo'
+I am foo in Quux namespace.
+I am foo in Quux namespace.
+function loader called with 'Quux\non_existent_function'
+function loader called with 'non_existent_function'
+
+Fatal error: Uncaught Error: Call to undefined function Quux\non_existant_function()...
 </PHP>
 
-The position of this RFC is that this behaviour is correct both from a performance point-of-view, and a being able to reason about code point-of-view.
+The position of this RFC is that this behaviour is correct both from a performance point-of-view, and a 'being able to reason about code' point-of-view.
 
 Having the function autoloader called on each use of an unqualified function call in a namespace would be a performance hit that would be unacceptable to most PHP users.
 
 Having it possible for what appears to be the same function call, to actually be dispatched to different functions, would be far too surprising a behaviour to the RFC authors.
-
 
 ===== Backward Incompatible Changes =====
 
@@ -184,6 +189,14 @@ Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> i
 Next minor version, i.e. PHP 8.3.
 
 ===== Future scope =====
+
+The use of the word ''class'' is currently accurate, but it seems likely that at some point PHP will have type aliases e.g.
+
+<PHP>
+type number = int | float;
+</PHP>
+
+When that happens, it may be more accurate to use the word ''type'' rather than ''class'' i.e. autoload_register_type.
 
 ====== Deprecating the SPL autoloader functions ======
 
