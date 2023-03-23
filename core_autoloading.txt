@@ -65,11 +65,15 @@ By default the value it has is ''".inc,.php"''.
 
 ===== Proposal =====
 
-The proposal consists of adding a better designed class autoloading mechanism and a new function autoloading mechanism. The proposal does //not// include a default implementation for either the class or the function autoloading mechanism.
+The proposal consists of adding a better designed class autoloading mechanism and a new function autoloading mechanism, and aliasing the existing autoload functions to the new versions.
+
+The proposal does //not// include a default implementation for either the class or the function autoloading mechanism.
 
 ==== New autoloading API ====
 
-This mechanism is mostly identical to the existing SPL design with some minor design issues addressed. It introduces the following 4 functions:
+=== Classes ===
+
+The API related to class autoloading is mostly identical to the existing SPL design with some minor design issues addressed. It introduces the following functions:
 
   * <php>autoload_register_class(callable $callback, bool $prepend = false): void</php>
   * <php>autoload_unregister_class(callable $callback): bool</php> for which <php>spl_autoload_unregister()</php> is an alias
@@ -81,6 +85,17 @@ The <php>spl_autoload_register()</php> does not become an alias for <php>autoloa
 Secondly, the behaviour to pass <php>autoload_call_class()</php>/<php>spl_autoload_call()</php> to <php>autoload_unregister_class()</php> as a magic value to empty the autoloader list will be deprecated.
 
 It will still be possible to unregister all autoloaders by traversing the list returned by <php>autoload_list_class()</php> and call <php>autoload_unregister_class()</php> on each entry.
+
+=== Functions ===
+
+The API related to function autoloading introduces the following functions:
+
+  * <php>autoload_register_function(callable $callback, bool $prepend = false): void</php> - Register given function as a function autoloader implementation
+  * <php>autoload_unregister_function(callable $callback): bool</php> - Unregister given function as a function autoloader implementation
+  * <php>autoload_call_function(string $function): void</php> - Try all registered function autoloader functions to load the requested function
+  * <php>autoload_list_function(): array</php>  - Return all registered function autoloader functions
+
+The 'class autoloader' list and 'function autoloader' list are separate lists.
 
 ==== Modified function ====
 
