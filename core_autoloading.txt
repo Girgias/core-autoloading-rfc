@@ -206,6 +206,13 @@ Although at some point the current SPL autoloader functions could be deprecated 
 
 It would be possible to add autoloading for constants and streams, however to limit the scope of this RFC it only adds support for functions.
 
+
+===== F.A.Q. =====
+
+==== Why change the function names from SPL? ====
+
+At some point, the SPL may be decoupled from PHP core. As autoloading should be part of core PHP, and not part of a library, moving the function names to not include SPL seems appropriate.
+
 ===== Proposed Voting Choices =====
 
 As per the voting RFC a yes/no vote with a 2/3 majority is needed for this proposal to be accepted.
