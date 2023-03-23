@@ -213,6 +213,11 @@ It would be possible to add autoloading for constants and streams, however to li
 
 At some point, the SPL may be decoupled from PHP core. As autoloading should be part of core PHP, and not part of a library, moving the function names to not include SPL seems appropriate.
 
+
+==== Is the behaviour of class autoloading changed? ====
+
+No. At least, not intentionally other than deprecating the magic behaviour of autoload_unregister_class when it is passed a special value, to unregister all class loaders, everything should work the same. If you see a change, please report a bug.
+
 ===== Proposed Voting Choices =====
 
 As per the voting RFC a yes/no vote with a 2/3 majority is needed for this proposal to be accepted.
