@@ -72,9 +72,9 @@ The proposal consists of adding a better designed class autoloading mechanism an
 This mechanism is mostly identical to the existing SPL design with some minor design issues addressed. It introduces the following 4 functions:
 
   * <php>autoload_register_class(callable $callback, bool $prepend = false): void</php>
-  * <php>autoload_unregister_class(callable $callback): bool</php> whom <php>spl_autoload_unregister()</php> is an alias
-  * <php>autoload_call_class(string $class): void</php> whom <php>spl_autoload_call()</php> is an alias
-  * <php>autoload_list_class(): array</php> whom <php>spl_autoload_functions()</php> is an alias
+  * <php>autoload_unregister_class(callable $callback): bool</php> for which <php>spl_autoload_unregister()</php> is an alias
+  * <php>autoload_call_class(string $class): void</php> for which <php>spl_autoload_call()</php> is an alias
+  * <php>autoload_list_class(): array</php> for which <php>spl_autoload_functions()</php> is an alias
 
 The <php>spl_autoload_register()</php> does not become an alias for <php>autoload_register_class()</php> to preserve BC by continuing to return ''true'', allowing it to register the default SPL autoloader, and accepting the ignored second parameter, but they are both forwarded to an identical internal implementation.
 
