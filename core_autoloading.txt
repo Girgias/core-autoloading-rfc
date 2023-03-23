@@ -12,9 +12,9 @@
 
 PHP has had support for class autoloading since PHP 5 and is an extremely useful feature that is relied on to only load classes that are being used within the current request. However, the current autoloading does not support autoloading functions.
 
-The need for such a feature seem very clear as users will create "helper" classes with static methods to take advantage of autoloading via the class autoloading mechanism.
+The need for such a feature seems very clear as users will create "helper" classes with static methods to take advantage of autoloading via the class autoloading mechanism.
 
-This RFC proposes the introduction of autoloading for functions and an updated mechanism for classes which address some minor design issues with the current SPL design.
+This RFC proposes the introduction of autoloading for functions and an updated mechanism for classes which addresses some minor design issues with the current SPL design.
 
 ==== Overview of the SPL class autoloading feature ====
 
