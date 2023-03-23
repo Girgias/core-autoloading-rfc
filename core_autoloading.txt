@@ -180,6 +180,8 @@ Having the function autoloader called on each use of an unqualified function cal
 
 Having it possible for what appears to be the same function call, to actually be dispatched to different functions, would be far too surprising a behaviour to the RFC authors.
 
+As a result of the pinning, ''function_exists'' will return true for functions in namespaces that have been pinned to a global function. In the above example <php>function_exists('bar\foo')</php> would return true, after the first use of it in the namespace. This is the correct behaviour from both a "will this trigger autoloading (no)" and a "is it safe to get reflection about that function" point of view, though arguably from other positions it might be less correct.
+
 ===== Backward Incompatible Changes =====
 
 Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> is deprecated.
