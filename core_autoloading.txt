@@ -187,13 +187,15 @@ At some point, the SPL may be decoupled from PHP core. As autoloading should be 
 
 No. At least, not intentionally other than deprecating the magic behaviour of autoload_unregister_class when it is passed a special value, to unregister all class loaders, everything should work the same. If you see a change, please report a bug.
 
-# What is the change in performance overhead for functions?
+# What is the change in performance overhead for function autoloading?
 
-Autoloading is only done once per function per namespace, assuming the function is loaded/resolved.
+For programs that do not have a function autoloader registered, there will be no autoloader to dispatch, so there will be almost no performance change.
+
+Whether or not a fuction autoloader is registered, resolving the function is only done once per function per namespace, assuming the function is loaded/resolved.
 
 As the code example shows, after a successful attempt to autoload a function in a namespace, or the global function fallback occurs, the function is 'pinned' to that function, and subsequent use doesn't trigger autoloading.
 
-It is possible to trigger the autoloader multiple times for the same class/function if you catch the Error, and repeat the attempt to use the class/function that doesn't exist, but that is outside of most normal coding practices.
+It is possible to trigger the autoloader multiple times for the same class/function if you catch the Error for class/function not found, and repeat the attempt to use the class/function that doesn't exist, but that is outside of most normal coding practices.
 
 ===== Proposed Voting Choices =====
 
