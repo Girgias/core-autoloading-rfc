@@ -203,7 +203,7 @@ As a result of the pinning, ''function_exists'' will return true for functions i
 
 PHP has the feature of aliasing/importing functions.
 
-When a function is imported, the function autoloader will not attempt to load a function in the current namespace, it will only try to use a function with the aliased/imported name. For global functions defined in the standard library (and so loaded when PHP starts up), this means no autoloading will occur.
+When a function is imported, the function autoloader will not attempt to load a function in the current namespace, it will only try to use a function with the aliased/imported name. For global functions defined in the standard library (and so loaded when PHP starts up), this means the function autoloader callback won't be called.
 
 For functions that are not aliased/imported, the function autoloader will be called once per function name per namespace. After that, the function will be pinned to the function that was resolved.
 
