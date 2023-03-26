@@ -209,15 +209,36 @@ Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> i
 
 Next minor version, i.e. PHP 8.3.
 
-===== Future scope =====
 
-The use of the word ''class'' is currently accurate, but it seems likely that at some point PHP will have type aliases e.g.
+===== Open Issues =====
+
+==== Accuracy of the naming ====
+
+The use of the word ''class'' in the API is currently accurate, but it seems likely that at some point PHP will have type aliases e.g.
 
 <PHP>
 type number = int | float;
 </PHP>
 
-When that happens, it may be more accurate to use the word ''type'' rather than ''class'' i.e. autoload_register_type.
+When that happens, and you have some code that uses that type alias:
+
+<PHP>
+function add(number $x, number $y) {
+    return $x + $y;
+}
+</PHP>
+
+then if the type alias hadn't already been loaded, PHP would need to load it.
+
+Loading any of parameter, return, or property type would need to go through the callback that is passed to ''autoload_register_class'', but as 'number' would be a type alias rather than a class, that would be a slightly incorrect name.
+
+It may be eventually more accurate to use the word ''type'' rather than ''class'' i.e. autoload_register_type, but it's probably more confusing right now.
+
+===== Future scope =====
+
+==== Higher performance through maps ====
+
+There is an ongoing conversation, and a [[previous RFC|https://wiki.php.net/rfc/autoload_classmap]] about adding functions to have a native classmap/functionmap/typemap resolver written in C. That is outside the scope of this RFC.
 
 ====== Deprecating the SPL autoloader functions ======
 
