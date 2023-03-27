@@ -56,6 +56,27 @@ The 'class autoloader' list and 'function autoloader' list are separate lists.
 
 The <php>function_exists()</php> function will be modified by adding a ''$autoload'' parameter which defaults to ''true'' same as the <php>class_exists()</php> function.
 
+==== Intended usage ====
+
+For most people who are writing their own autoloader, the usage would look this:
+
+<PHP>
+function my_function_loader(string $function_name) {
+	// This callback only receives requests to load functions
+	// do the needful to load function $function_name
+}
+
+function my_class_loader(string $class_name) {
+	// This callback only receives requests to load classes
+	// do the needful to load class $class_name
+}
+
+autoload_register_function(my_function_loader(...));
+autoload_register_class(my_class_loader(...));
+</PHP>
+
+i.e. separate autoloader callback receive 'Foo' for class 'Foo' and 'foo' for function 'foo', and there is no ambiguity what is being autoloaded, even though the names are the same.
+
 ==== Function autoloading mechanism ====
 
 When namespaces were introduced in PHP 5.3.0, to avoid requiring leading slashes before all basic functions, function calls in a namespace would 'fallback' to the global scope.
@@ -259,11 +280,98 @@ At some point, the SPL may be decoupled from PHP core. As autoloading should be 
 
 No. At least, not intentionally other than deprecating the magic behaviour of autoload_unregister_class when it is passed a special value, to unregister all class loaders, everything should work the same. If you see a change, please report a bug.
 
+==== Why the separate autoloader callbacks? ====
+
+=== Performance ===
+
+By having separate autoloader callbacks for functions and classes, there is a tiny performance gain in not having to check what the type is inside the callback.
+
+Although this is trivial per application, as it would benefit every PHP application that uses autoloading this is probably a non-trivial amount of energy saved.
+
+=== Future proof internally ===
+
+Currently the two autoloaders (class and function) have the same signature.
+
+It is possible to imagine that an autoloader for a different feature, might require a different signature for the autoloader.
+
+One example would be a hypothetical implementation for supporting generics;
+
+<PHP>
+
+function my_generic_autoloader(string $name, string ...$types) {
+	// generate code for generic class on the fly from a template
+}
+
+autoload_register_generic_generator(my_generic_autoloader(...));
+
+
+$intStack = new GenericStack<int>();
+// This calls my_generic_autoloader with the parameters 'GenericStack' and 'int'
+</PHP>
+
+
+Having the different autoloader by separate callbacks avoids the future problem of trying to hack around the parameters having different values/meanings depending on the feature being loaded.
+
+=== Future proof for users ===
+
+As there would be two features that are autoloadable, some people would write their code like this:
+
+<PHP>
+function my_autoloader(string $name, Type $type)
+{
+	if ($type === Type::function) {
+		// do your function autoloading here..
+	} else {
+		// Well it must be a class!
+	}
+}
+</PHP>
+
+
+This code would need updating when a new feature was autoloadable. By having the separate callbacks, each of those callbacks will only ever receive the feature it is designed to work with.
+
+Designing the API to be safer from accidental misuse, is probably a good idea.
+
+
+# What if I really would prefer an API that went through a single function?
+
+That can be done in userland like this:
+
+```
+enum Type: string {
+    case class = 'class';
+    case function = 'function';
+}
+
+function my_autoloader(string $name, Type $type)
+{
+	if ($type === Type::function) {
+		// do your function autoloading here..
+	} else if ($type === Type::class) {
+		// do your class autoloading here..
+	} else {
+		// Unknown type, throw error...
+	}
+}
+
+function my_function_loader(string $function_name) {
+	return my_autoloader(function_name, Type::function)
+}
+
+
+function my_class_loader(string $class_name) {
+	return my_autoloader(function_name, Type::class)
+}
+
+autoload_register_function(my_function_loader(...));
+autoload_register_class(my_class_loader(...));
+```
+
 # What is the change in performance overhead for function autoloading?
 
 For programs that do not have a function autoloader registered, there will be no autoloader to dispatch, so there will be almost no performance change.
 
-Whether or not a fuction autoloader is registered, resolving the function is only done once per function per namespace, assuming the function is loaded/resolved.
+Whether or not a fuction autoloader is registered, resolving the function is only done once per function per namespace, assuming the function is either loaded or resolved through the global fallback.
 
 As the code example shows, after a successful attempt to autoload a function in a namespace, or the global function fallback occurs, the function is 'pinned' to that function, and subsequent use doesn't trigger autoloading.
 
