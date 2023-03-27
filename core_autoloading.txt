@@ -14,6 +14,8 @@ PHP has had support for class autoloading since PHP 5 and is an extremely useful
 
 The need for such a feature seems very clear as users will create "helper" classes with static methods to take advantage of autoloading via the class autoloading mechanism.
 
+A previous [[draft RFC for function autoloading|https://wiki.php.net/rfc/function_autoloading]] did not proceed to a vote, due to concerns on a performance hit related to global functions. This RFC has avoided that performance problem.
+
 This RFC proposes the introduction of autoloading for functions and an updated mechanism for classes which addresses some minor design issues with the current SPL design.
 
 ===== Proposal =====
@@ -171,6 +173,55 @@ Having it possible for what appears to be the same function call, to actually be
 
 As a result of the pinning, ''function_exists'' will return true for functions in namespaces that have been pinned to a global function. In the above example <php>function_exists('bar\foo')</php> would return true, after the first use of it in the namespace. This is the correct behaviour from both a "will this trigger autoloading (no)" and a "is it safe to get reflection about that function" point of view, though arguably from other positions it might be less correct.
 
+==== Aliased/Imported functions ====
+
+PHP has the feature of aliasing/importing functions.
+
+When a function is imported, the function autoloader will not attempt to load a function in the current namespace, it will only try to use a function with the aliased/imported name. For global functions defined in the standard library (and so loaded when PHP starts up), this means the function autoloader callback won't be called.
+
+For functions that are not aliased/imported, the function autoloader will be called once per function name per namespace. After that, the function will be pinned to the function that was resolved.
+
+<PHP>
+namespace {
+    function loader($name) {
+        echo "function loader called with '$name'\n";
+    }
+
+    autoload_register_function('loader');
+}
+
+namespace Foo {
+
+    use function strlen;
+
+    // As the function strlen is imported and the function \strlen is
+    // already loaded as part of the standard library, no call to
+    // the autoloader happens
+    echo "strlen length is " . strlen('strlen') . "\n";
+
+    // As the function strpos is not imported, there is a
+    // single call to the autoloader with 'Foo/strpos' as the
+    // name. As no function is loaded, the fallback to \strpos
+    // occurs, and the name 'Foo/strpos' is pinned to '\strpos'
+    echo "pos position is " .strpos("strpos", "pos") . "\n";
+
+    // As 'Foo/strpos' is now pinned to '\strpos', no autoload call occurs
+    echo "pos position is " .strpos("strpos", "pos") . "\n";
+    echo "pos position is " .strpos("strpos", "pos") . "\n";
+    echo "pos position is " .strpos("strpos", "pos") . "\n";
+}
+
+// Output is:
+//
+// strlen length is 6
+// function loader called with 'Foo\strpos'
+// pos position is 3
+// pos position is 3
+// pos position is 3
+// pos position is 3
+
+</PHP>
+
 ===== Backward Incompatible Changes =====
 
 Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> is deprecated.
@@ -179,15 +230,36 @@ Passing <php>spl_autoload_call()</php> to <php>spl_autoload_unregister()</php> i
 
 Next minor version, i.e. PHP 8.3.
 
-===== Future scope =====
 
-The use of the word ''class'' is currently accurate, but it seems likely that at some point PHP will have type aliases e.g.
+===== Open Issues =====
+
+==== Accuracy of the naming ====
+
+The use of the word ''class'' in the API is currently accurate, but it seems likely that at some point PHP will have type aliases e.g.
 
 <PHP>
 type number = int | float;
 </PHP>
 
-When that happens, it may be more accurate to use the word ''type'' rather than ''class'' i.e. autoload_register_type.
+When that happens, and you have some code that uses that type alias:
+
+<PHP>
+function add(number $x, number $y) {
+    return $x + $y;
+}
+</PHP>
+
+then if the type alias hadn't already been loaded, PHP would need to load it.
+
+Loading any of parameter, return, or property type would need to go through the callback that is passed to ''autoload_register_class'', but as 'number' would be a type alias rather than a class, that would be a slightly incorrect name.
+
+It may be eventually more accurate to use the word ''type'' rather than ''class'' i.e. autoload_register_type, but it's probably more confusing right now.
+
+===== Future scope =====
+
+==== Higher performance through maps ====
+
+There is an ongoing conversation, and a [[previous RFC|https://wiki.php.net/rfc/autoload_classmap]] about adding functions to have a native classmap/functionmap/typemap resolver written in C. That is outside the scope of this RFC.
 
 ====== Deprecating the SPL autoloader functions ======
 
@@ -207,7 +279,6 @@ At some point, the SPL may be decoupled from PHP core. As autoloading should be 
 ==== Is the behaviour of class autoloading changed? ====
 
 No. At least, not intentionally other than deprecating the magic behaviour of autoload_unregister_class when it is passed a special value, to unregister all class loaders, everything should work the same. If you see a change, please report a bug.
-
 
 ==== Why the separate autoloader callbacks? ====
 
@@ -295,6 +366,16 @@ function my_class_loader(string $class_name) {
 autoload_register_function(my_function_loader(...));
 autoload_register_class(my_class_loader(...));
 ```
+
+# What is the change in performance overhead for function autoloading?
+
+For programs that do not have a function autoloader registered, there will be no autoloader to dispatch, so there will be almost no performance change.
+
+Whether or not a fuction autoloader is registered, resolving the function is only done once per function per namespace, assuming the function is either loaded or resolved through the global fallback.
+
+As the code example shows, after a successful attempt to autoload a function in a namespace, or the global function fallback occurs, the function is 'pinned' to that function, and subsequent use doesn't trigger autoloading.
+
+It is possible to trigger the autoloader multiple times for the same class/function if you catch the Error for class/function not found, and repeat the attempt to use the class/function that doesn't exist, but that is outside of most normal coding practices.
 
 ===== Proposed Voting Choices =====
 
