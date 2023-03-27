@@ -228,7 +228,7 @@ One example would be a hypothetical implementation for supporting generics;
 <PHP>
 
 function my_generic_autoloader(string $name, string ...$types) {
-	// generate code for generic class on the fly from a emplate
+	// generate code for generic class on the fly from a template
 }
 
 autoload_register_generic_generator(my_generic_autoloader(...));
