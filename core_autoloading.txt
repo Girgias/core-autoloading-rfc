@@ -173,13 +173,18 @@ Having it possible for what appears to be the same function call, to actually be
 
 As a result of the pinning, ''function_exists'' will return true for functions in namespaces that have been pinned to a global function. In the above example <php>function_exists('bar\foo')</php> would return true, after the first use of it in the namespace. This is the correct behaviour from both a "will this trigger autoloading (no)" and a "is it safe to get reflection about that function" point of view, though arguably from other positions it might be less correct.
 
-==== Aliased/Imported functions ====
+==== Details of global fallback and absolute function names  ====
 
-PHP has the feature of aliasing/importing functions.
+(Note, this section is mostly just clarification of how PHP currently works, and how function autoloading fits in with that. It is not proposing a change to the global fallback.)
 
-When a function is imported, the function autoloader will not attempt to load a function in the current namespace, it will only try to use a function with the aliased/imported name. For global functions defined in the standard library (and so loaded when PHP starts up), this means the function autoloader callback won't be called.
+The global fallback is not invoked for functions with absolute names. Absolute function names happen:
 
-For functions that are not aliased/imported, the function autoloader will be called once per function name per namespace. After that, the function will be pinned to the function that was resolved.
+* In a PHP file that has an alias/import of a function, when that file is compiled, an absolute name is used for the function name.
+* Functions that are directly invoked with an absolute name e.g. ''\strlen("bar");''
+
+For functions that are not invoked with an absolute function name, the function autoloader will be called once per function name per namespace. After that, the function will be pinned to the function that was resolved.
+
+Again, this is possibly easier to understand through code:
 
 <PHP>
 namespace {
@@ -191,24 +196,34 @@ namespace {
 }
 
 namespace Foo {
-
     use function strlen;
+    use function Bar\strcmp;
 
-    // As the function strlen is imported and the function \strlen is
-    // already loaded as part of the standard library, no call to
-    // the autoloader happens
+    // As the function strlen is imported and so has an absolute
+    // function name, and already exists once PHP starts up no
+    // call to the autoloader happens
     echo "strlen length is " . strlen('strlen') . "\n";
 
     // As the function strpos is not imported, there is a
     // single call to the autoloader with 'Foo/strpos' as the
     // name. As no function is loaded, the fallback to \strpos
     // occurs, and the name 'Foo/strpos' is pinned to '\strpos'
-    echo "pos position is " .strpos("strpos", "pos") . "\n";
+    echo "pos position is " . strpos("strpos", "pos") . "\n";
 
-    // As 'Foo/strpos' is now pinned to '\strpos', no autoload call occurs
-    echo "pos position is " .strpos("strpos", "pos") . "\n";
-    echo "pos position is " .strpos("strpos", "pos") . "\n";
-    echo "pos position is " .strpos("strpos", "pos") . "\n";
+    // As 'Foo/strpos' is now pinned to '\strpos' no autoload call occurs
+    echo "pos position is " . strpos("strpos", "pos") . "\n";
+    echo "pos position is " . strpos("strpos", "pos") . "\n";
+    echo "pos position is " . strpos("strpos", "pos") . "\n";
+
+    // As '\substr' is an absolute function name, and already
+    // exists once PHP starts up, no call to the autoloader happens
+    echo "absolute substr: " . \substr("haystack", 3) . "\n";
+
+    // The function 'Bar\strcmp' is imported as an absolute function name,
+    // so no global fallback occurs. There is a single call to the function
+    // autoloader to load 'Bar\strcmp' and then the program errors due to
+    // an "undefined function Bar\strcmp"
+    strcmp('aaa', 'bbb');
 }
 
 // Output is:
@@ -219,7 +234,10 @@ namespace Foo {
 // pos position is 3
 // pos position is 3
 // pos position is 3
-
+// absolute substr: stack
+// function loader called with 'Bar\strcmp'
+//
+// Fatal error: Uncaught Error: Call to undefined function Bar\strcmp()
 </PHP>
 
 ===== Backward Incompatible Changes =====
