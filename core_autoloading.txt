@@ -10,11 +10,13 @@
 
 ===== Introduction =====
 
-PHP has had support for class autoloading since PHP 5 and is an extremely useful feature that is relied on to only load classes that are being used within the current request. However, the current autoloading does not support autoloading functions.
+PHP has had support for class autoloading since PHP 5 and it is an extremely useful feature that is relied on to only load classes that are being used within the current request.
+However, the current autoloading mechanism does not support autoloading functions.
 
 The need for such a feature seems very clear as users will create "helper" classes with static methods to take advantage of autoloading via the class autoloading mechanism.
 
-A previous [[draft RFC for function autoloading|https://wiki.php.net/rfc/function_autoloading]] did not proceed to a vote, due to concerns on a performance hit related to global functions. This RFC has avoided that performance problem.
+A previous [[draft RFC for function autoloading|https://wiki.php.net/rfc/function_autoloading]] did not proceed to a vote, due to concerns on a performance hit related to global functions.
+This RFC has avoided that performance problem.
 
 This RFC proposes the introduction of autoloading for functions and an updated mechanism for classes which addresses some minor design issues with the current SPL design.
 
@@ -95,7 +97,8 @@ This RFC preserves that fallback behaviour.
 
 When code tries to call a function that doesn't currently exist in the current namespace, the function autoloader mechanism will call the registered function autoloaders once with the fully namespaced function name.
 
-If an appropriately named function is not loaded during that call, the PHP engine will 'fallback' that function to the global namespace. If a function already exists with the global namespace name, that will be used, otherwise the function autoloader mechanism will call the registered function autoloaders once with the global function name.
+If an appropriately named function is not loaded during that call, the PHP engine will 'fallback' that function to the global namespace.
+If a function already exists with the global namespace name, that will be used, otherwise the function autoloader mechanism will call the registered function autoloaders once with the global function name.
 
 After a function autoload attempt succeeds, the function will be 'pinned' to the function that was resolved on the first successful autoload attempt, and no more function autoload calls will be generated.
 
