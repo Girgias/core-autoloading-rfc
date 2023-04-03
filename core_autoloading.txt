@@ -353,8 +353,7 @@ This code would need updating when a new feature was autoloadable. By having the
 
 Designing the API to be safer from accidental misuse, is probably a good idea.
 
-
-# What if I really would prefer an API that went through a single function?
+=== What if I really would prefer an API that went through a single function? ===
 
 That can be done in userland like this:
 
@@ -388,7 +387,7 @@ autoload_register_function(my_function_loader(...));
 autoload_register_class(my_class_loader(...));
 </PHP>
 
-# What is the change in performance overhead for function autoloading?
+=== What is the change in performance overhead for function autoloading? ===
 
 For programs that do not have a function autoloader registered, there will be no autoloader to dispatch, so there will be almost no performance change.
 
