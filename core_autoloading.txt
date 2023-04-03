@@ -359,9 +359,9 @@ Designing the API to be safer from accidental misuse, is probably a good idea.
 That can be done in userland like this:
 
 ```
-enum Type: string {
-    case class = 'class';
-    case function = 'function';
+enum Type {
+    case Class;
+    case Function;
 }
 
 function my_autoloader(string $name, Type $type)
