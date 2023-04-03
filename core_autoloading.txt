@@ -358,7 +358,7 @@ Designing the API to be safer from accidental misuse, is probably a good idea.
 
 That can be done in userland like this:
 
-```
+<PHP>
 enum Type {
     case Class;
     case Function;
@@ -386,7 +386,7 @@ function my_class_loader(string $class_name) {
 
 autoload_register_function(my_function_loader(...));
 autoload_register_class(my_class_loader(...));
-```
+</PHP>
 
 # What is the change in performance overhead for function autoloading?
 
