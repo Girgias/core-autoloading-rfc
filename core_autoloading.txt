@@ -37,7 +37,7 @@ The API related to class autoloading is mostly identical to the existing SPL des
   * <php>autoload_call_class(string $class): void</php> for which <php>spl_autoload_call()</php> is an alias
   * <php>autoload_list_class(): array</php> for which <php>spl_autoload_functions()</php> is an alias
 
-The <php>spl_autoload_register()</php> does not become an alias for <php>autoload_register_class()</php> to preserve BC by continuing to return ''true'', allowing it to register the default SPL autoloader, and accepting the ignored second parameter, but they are both forwarded to an identical internal implementation.
+The <php>spl_autoload_register()</php> does not become an alias for <php>autoload_register_class()</php> to preserve BC by continuing to return <php>true</php>, allowing it to register the default SPL autoloader, and accepting the ignored second parameter, but they are both forwarded to an identical internal implementation.
 
 Secondly, the behaviour to pass <php>autoload_call_class()</php>/<php>spl_autoload_call()</php> to <php>autoload_unregister_class()</php> as a magic value to empty the autoloader list will be deprecated.
 
@@ -56,7 +56,7 @@ The 'class autoloader' list and 'function autoloader' list are separate lists.
 
 ==== Modified function ====
 
-The <php>function_exists()</php> function will be modified by adding a ''$autoload'' parameter which defaults to ''true'' same as the <php>class_exists()</php> function.
+The <php>function_exists()</php> function will be modified by adding a <php>$autoload</php> parameter which defaults to <php>true</php> same as the <php>class_exists()</php> function.
 
 ==== Intended usage ====
 
@@ -91,7 +91,7 @@ namespace bar {
 }
 </PHP>
 
-If a function named ''strlen'' exists in the namespace ''bar'' PHP would use that, otherwise PHP would fallback to the <php>strlen()</php> function in the global namespace. Note, the ''use function strlen;'' syntax was introduced in PHP 5.6.
+If a function named ''strlen'' exists in the namespace ''bar'' PHP would use that, otherwise PHP would fallback to the <php>strlen()</php> function in the global namespace. Note, the <php>use function strlen;</php> syntax was introduced in PHP 5.6.
 
 This RFC preserves that fallback behaviour.
 
@@ -174,7 +174,7 @@ Having the function autoloader called on each use of an unqualified function cal
 
 Having it possible for what appears to be the same function call, to actually be dispatched to different functions, would be far too surprising a behaviour to the RFC authors.
 
-As a result of the pinning, ''function_exists'' will return true for functions in namespaces that have been pinned to a global function. In the above example <php>function_exists('bar\foo')</php> would return true, after the first use of it in the namespace. This is the correct behaviour from both a "will this trigger autoloading (no)" and a "is it safe to get reflection about that function" point of view, though arguably from other positions it might be less correct.
+As a result of the pinning, <php>function_exists()</php> will return true for functions in namespaces that have been pinned to a global function. In the above example <php>function_exists('bar\foo')</php> would return true, after the first use of it in the namespace. This is the correct behaviour from both a "will this trigger autoloading (no)" and a "is it safe to get reflection about that function" point of view, though arguably from other positions it might be less correct.
 
 ==== Details of global fallback and absolute function names  ====
 
@@ -183,7 +183,7 @@ As a result of the pinning, ''function_exists'' will return true for functions i
 The global fallback is not invoked for functions with absolute names. Absolute function names happen:
 
 * In a PHP file that has an alias/import of a function, when that file is compiled, an absolute name is used for the function name.
-* Functions that are directly invoked with an absolute name e.g. ''\strlen("bar");''
+* Functions that are directly invoked with an absolute name e.g. <php>\strlen("bar");</php>
 
 For functions that are not invoked with an absolute function name, the function autoloader will be called once per function name per namespace. After that, the function will be pinned to the function that was resolved.
 
@@ -272,9 +272,9 @@ function add(number $x, number $y) {
 
 then if the type alias hadn't already been loaded, PHP would need to load it.
 
-Loading any of parameter, return, or property type would need to go through the callback that is passed to ''autoload_register_class'', but as 'number' would be a type alias rather than a class, that would be a slightly incorrect name.
+Loading any of parameter, return, or property type would need to go through the callback that is passed to <php>autoload_register_class()</php>, but as 'number' would be a type alias rather than a class, that would be a slightly incorrect name.
 
-It may be eventually more accurate to use the word ''type'' rather than ''class'' i.e. autoload_register_type, but it's probably more confusing right now.
+It may be eventually more accurate to use the word ''type'' rather than ''class'' i.e. <php>autoload_register_type()</php>, but it's probably more confusing right now.
 
 ===== Future scope =====
 
